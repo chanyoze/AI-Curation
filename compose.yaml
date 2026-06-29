@@ -1,0 +1,33 @@
+# NewsLens 로컬 인프라 — Postgres(pgvector) + Redis
+# 앱은 처음엔 로컬 실행(./gradlew bootRun). docker compose up -d 로 DB/캐시만 띄운다.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: newslens-postgres
+    environment:
+      POSTGRES_DB: newslens
+      POSTGRES_USER: newslens
+      POSTGRES_PASSWORD: newslens
+    ports:
+      - "5432:5432"
+    volumes:
+      - newslens-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U newslens -d newslens"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: newslens-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  newslens-pgdata:

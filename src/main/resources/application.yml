@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: newslens
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:newslens}
+    username: ${DB_USERNAME:newslens}
+    password: ${DB_PASSWORD:newslens}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate        # 스키마는 Flyway 가 단일 소스 — JPA 는 검증만
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  ai:
+    google:
+      genai:
+        # AI Studio 무료 티어 — project-id/location 은 절대 넣지 않는다(넣으면 Vertex 유료 전환).
+        # 키 없이도 부팅되도록 기본값을 두되, 실제 LLM 호출에는 GEMINI_API_KEY 필요.
+        api-key: ${GEMINI_API_KEY:dummy-key}
+        chat:
+          options:
+            model: gemini-2.0-flash
+        embedding:
+          text:
+            options:
+              model: text-embedding-004
+
+# 외신 수집 소스 (The Guardian Content API)
+guardian:
+  api-key: ${GUARDIAN_API_KEY:}
+  base-url: https://content.guardianapis.com
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
