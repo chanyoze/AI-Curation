@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewsLens — AI 미디어 큐레이션 플랫폼</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1020; --bg2:#0f1730; --panel:#131c38; --panel2:#172143;
+    --line:#26335c; --txt:#e7ecf7; --mut:#94a3c4; --dim:#6b7aa3;
+    --cyan:#38e0d8; --violet:#8b7cf6; --amber:#f6b352; --green:#4ade80; --pink:#f472b6;
+    --grad:linear-gradient(120deg,#38e0d8,#8b7cf6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Pretendard','Noto Sans KR',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 800px at 80% -10%,#1a2550 0%,var(--bg) 55%),var(--bg);
+    color:var(--txt); overflow:hidden;
+  }
+  .deck{position:relative;height:100vh;width:100vw}
+  .slide{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    padding:6vh 8vw 9vh; opacity:0; transition:opacity .35s ease;
+  }
+  .slide.active{display:flex;opacity:1}
+  .kicker{font-size:.95rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);font-weight:700;margin-bottom:1.1rem}
+  h1{font-size:4.2rem;line-height:1.08;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:2.7rem;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin-bottom:2rem}
+  h2 .ac{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .lead{font-size:1.5rem;color:var(--mut);line-height:1.6;font-weight:400}
+  .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .muted{color:var(--mut)} .dim{color:var(--dim)}
+  .cols{display:grid;gap:1.4rem;flex:1;align-content:start}
+  .c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:1fr 1fr 1fr}.c4{grid-template-columns:repeat(4,1fr)}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:18px;padding:1.6rem 1.7rem}
+  .card h3{font-size:1.35rem;font-weight:700;margin-bottom:.55rem;display:flex;align-items:center;gap:.6rem}
+  .card p{color:var(--mut);font-size:1.05rem;line-height:1.55}
+  .ico{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:1.3rem;background:#0e1733;border:1px solid var(--line)}
+  ul.feat{list-style:none;display:flex;flex-direction:column;gap:1.05rem;margin-top:.4rem}
+  ul.feat li{font-size:1.45rem;line-height:1.5;padding-left:2.2rem;position:relative;color:var(--txt)}
+  ul.feat li::before{content:"▹";position:absolute;left:0;color:var(--cyan);font-weight:800}
+  ul.feat li span{color:var(--mut);font-size:1.1rem}
+  .chips{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:.4rem}
+  .chip{background:#0e1733;border:1px solid var(--line);border-radius:999px;padding:.5rem 1.1rem;font-size:1.05rem;color:var(--mut)}
+  .chip b{color:var(--txt);font-weight:700}
+  code,.mono{font-family:'JetBrains Mono',ui-monospace,'Cascadia Code',Consolas,monospace}
+  .flow{display:flex;align-items:stretch;gap:1rem;flex-wrap:wrap}
+  .node{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem 1.2rem;min-width:140px;text-align:center}
+  .node .t{font-weight:700;font-size:1.1rem}.node .s{color:var(--dim);font-size:.9rem;margin-top:.25rem}
+  .node.hl{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset}
+  .node.ai{border-color:var(--violet);box-shadow:0 0 0 1px var(--violet) inset}
+  .arr{display:grid;place-items:center;color:var(--cyan);font-size:1.6rem;font-weight:800}
+  table{width:100%;border-collapse:collapse;font-size:1.15rem}
+  th,td{text-align:left;padding:.85rem 1rem;border-bottom:1px solid var(--line)}
+  th{color:var(--cyan);font-weight:700;font-size:.95rem;letter-spacing:.05em;text-transform:uppercase}
+  td b{color:var(--txt)} td{color:var(--mut)}
+  .road{display:flex;flex-direction:column;gap:.85rem;flex:1}
+  .ph{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:1.2rem;background:linear-gradient(90deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:14px;padding:1rem 1.4rem}
+  .ph .p{font-weight:800;font-size:1.05rem;color:var(--violet);letter-spacing:.04em}
+  .ph .d{font-size:1.2rem}.ph .d b{font-weight:700}.ph .d span{color:var(--mut);font-size:1rem}
+  .ph .st{font-size:.85rem;font-weight:700;padding:.32rem .8rem;border-radius:999px;white-space:nowrap}
+  .st.done{background:rgba(74,222,128,.14);color:var(--green);border:1px solid rgba(74,222,128,.35)}
+  .st.now{background:rgba(56,224,216,.14);color:var(--cyan);border:1px solid rgba(56,224,216,.4)}
+  .st.next{background:rgba(139,124,246,.12);color:var(--violet);border:1px solid rgba(139,124,246,.35)}
+  .st.later{background:#0e1733;color:var(--dim);border:1px solid var(--line)}
+  .ph.active{border-color:var(--cyan)}
+  .steps{display:flex;flex-direction:column;gap:.7rem;counter-reset:s}
+  .step{display:flex;gap:1.1rem;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:1rem 1.3rem}
+  .step .n{counter-increment:s;min-width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800;background:var(--grad);color:#08122a}
+  .step .n::before{content:counter(s)}
+  .step .b{font-size:1.18rem}.step .b b{font-weight:700}.step .b span{color:var(--mut);font-size:1rem;display:block;margin-top:.15rem}
+  .big{font-size:2.2rem;font-weight:800;line-height:1.3}
+  .stat{display:flex;gap:2.4rem;flex-wrap:wrap;margin-top:.6rem}
+  .stat .v{font-size:2.6rem;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stat .k{color:var(--mut);font-size:1rem;margin-top:.2rem}
+  .pill{display:inline-flex;align-items:center;gap:.5rem;background:#0e1733;border:1px solid var(--line);border-radius:999px;padding:.45rem 1rem;font-size:1rem;color:var(--mut)}
+  .ok{color:var(--green);font-weight:700}
+  .note{margin-top:auto;color:var(--dim);font-size:1rem;border-top:1px solid var(--line);padding-top:1rem}
+  /* HUD */
+  .hud{position:fixed;left:0;right:0;bottom:0;height:5px;background:#0b1228;z-index:50}
+  .hud .bar{height:100%;background:var(--grad);width:0;transition:width .35s}
+  .pg{position:fixed;right:2.2vw;bottom:2.3vh;font-size:.95rem;color:var(--dim);z-index:50;font-weight:600}
+  .pg b{color:var(--txt)}
+  .brand{position:fixed;left:2.2vw;bottom:2.1vh;font-size:.92rem;color:var(--dim);z-index:50;display:flex;gap:.5rem;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--grad)}
+  .hint{position:fixed;top:2.2vh;right:2.4vw;font-size:.85rem;color:var(--dim);z-index:50}
+  .logo{display:inline-flex;align-items:center;gap:.7rem;font-weight:800;font-size:1.2rem;letter-spacing:-.01em}
+  .logo .m{width:34px;height:34px;border-radius:10px;background:var(--grad);display:grid;place-items:center;color:#08122a;font-size:1.1rem}
+  .tags{display:flex;gap:.6rem;margin-top:2.4rem;flex-wrap:wrap}
+  .tag{font-size:.95rem;color:var(--mut);background:#0e1733;border:1px solid var(--line);border-radius:8px;padding:.4rem .9rem}
+  @media(max-width:900px){h1{font-size:2.6rem}h2{font-size:1.9rem}.c2,.c3,.c4{grid-template-columns:1fr}.ph{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 -->
+  <section class="slide active" data-t="Cover">
+    <div style="margin-top:6vh">
+      <div class="logo"><span class="m">◆</span> NewsLens</div>
+    </div>
+    <div style="margin-top:auto;margin-bottom:auto">
+      <div class="kicker">AI Media Curation Platform · 백엔드 포트폴리오</div>
+      <h1>외신 AI·테크 뉴스를<br><span class="grad">수집·요약하고 자연어로 검색</span>하는<br>미디어 큐레이션 플랫폼</h1>
+      <p class="lead" style="margin-top:1.8rem">LLM 번역·요약·태깅 + pgvector RAG 검색 + 실시간 알림(SSE)</p>
+      <div class="tags">
+        <span class="tag">Spring Boot 3.5</span><span class="tag">Spring AI · Gemini</span>
+        <span class="tag">PostgreSQL + pgvector</span><span class="tag">Redis · SSE</span><span class="tag">RAG</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="slide" data-t="배경">
+    <div class="kicker">Why</div>
+    <h2>AI·테크 뉴스는 <span class="ac">너무 빠르게, 너무 많이</span> 쏟아진다</h2>
+    <div class="cols c3">
+      <div class="card"><h3>🌊 정보 과부하</h3><p>외신 AI 뉴스가 매일 수십 건. 원문은 영어라 따라가기 어렵고, 무엇이 중요한지 가려내기 힘들다.</p></div>
+      <div class="card"><h3>🔎 키워드 검색의 한계</h3><p>"요즘 LLM 추론 비용 얘기 뭐 있었지?" 같은 <b>맥락 질문</b>은 단순 키워드 검색으로 답이 안 나온다.</p></div>
+      <div class="card"><h3>⏰ 놓치는 속보</h3><p>중요한 기사가 올라와도 직접 들어가 보기 전엔 모른다. 푸시받을 방법이 없다.</p></div>
+    </div>
+    <p class="lead" style="margin-top:2rem">→ <b class="grad">AI로 AI 뉴스를 큐레이션</b>한다. 수집·요약은 자동, 검색은 자연어, 알림은 실시간.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="slide" data-t="핵심 기능">
+    <div class="kicker">What</div>
+    <h2>핵심 기능 <span class="ac">4가지</span></h2>
+    <div class="cols c4">
+      <div class="card"><div class="ico">📡</div><h3>자동 수집</h3><p>The Guardian API에서 AI·테크 기사를 스케줄러로 주기 수집. URL/ID 해시로 중복 제거.</p></div>
+      <div class="card"><div class="ico">🧠</div><h3>LLM 가공</h3><p>영문 기사를 한국어로 번역·요약·태깅. 기사당 단 <b>2번</b>의 LLM 호출로 처리.</p></div>
+      <div class="card"><div class="ico">💬</div><h3>RAG 검색</h3><p>자연어 질문 → pgvector 유사도 Top-K → 근거 기사와 함께 답변 생성.</p></div>
+      <div class="card"><div class="ico">🔔</div><h3>실시간 알림</h3><p>새 기사 수집 시 SSE로 구독자에게 즉시 푸시 + 캐시 자동 갱신.</p></div>
+    </div>
+    <p class="note">데모 시나리오: <span class="mono muted">"최근 오픈소스 LLM 동향 알려줘"</span> → 요약 답변 + 출처 3건 + 새 기사 토스트</p>
+  </section>
+
+  <!-- 4 -->
+  <section class="slide" data-t="아키텍처">
+    <div class="kicker">Architecture</div>
+    <h2>데이터 흐름 — <span class="ac">쓰기 라인</span>과 <span class="ac">읽기 라인</span></h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;flex:1;align-content:center">
+      <div>
+        <div class="pill" style="margin-bottom:1rem">✍️ 수집 라인 (쓰기)</div>
+        <div class="flow" style="flex-direction:column">
+          <div class="node"><div class="t">Guardian API</div><div class="s">외신 원문</div></div>
+          <div class="arr">↓</div>
+          <div class="node"><div class="t">스케줄러 · 중복제거</div><div class="s">@Scheduled / source_id 유니크</div></div>
+          <div class="arr">↓</div>
+          <div class="node ai"><div class="t">LLM 처리</div><div class="s">요약·태깅 1콜 + 임베딩 1콜</div></div>
+          <div class="arr">↓</div>
+          <div class="node hl"><div class="t">PostgreSQL + pgvector</div><div class="s">원문 + vector(768)</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="pill" style="margin-bottom:1rem">👁️ 사용자 라인 (읽기)</div>
+        <div class="flow" style="flex-direction:column">
+          <div class="node"><div class="t">클라이언트 / 데모 UI</div><div class="s">Swagger · React(최소)</div></div>
+          <div class="arr">↓</div>
+          <div class="node"><div class="t">REST API</div><div class="s">Feed · Article · Category</div></div>
+          <div class="arr">↓</div>
+          <div class="node ai"><div class="t">RAG 검색</div><div class="s">질문 임베딩 → Top-K → 답변</div></div>
+          <div class="arr">↓</div>
+          <div class="node hl"><div class="t">Redis 캐시 · SSE 알림</div><div class="s">NewArticlesEvent 구독</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">두 라인은 <b>DB 스키마·이벤트 계약</b>만 공유 → 충돌 없이 독립 진행 가능 (스트레치로 JWT 필터 자리 예약)</p>
+  </section>
+
+  <!-- 5 -->
+  <section class="slide" data-t="기술 스택">
+    <div class="kicker">Stack</div>
+    <h2>기술 스택 <span class="ac">— 왜 이걸 골랐나</span></h2>
+    <table>
+      <tr><th>영역</th><th>기술</th><th>선택 이유</th></tr>
+      <tr><td><b>런타임</b></td><td>Spring Boot 3.5 / Java 21</td><td>DDD·필터체인·이벤트 등 실무 패턴 학습 + 팀 스택 통일</td></tr>
+      <tr><td><b>벡터 DB</b></td><td>PostgreSQL 16 + pgvector</td><td>RDB 하나로 원문+벡터 동시 관리. 별도 검색엔진 불필요</td></tr>
+      <tr><td><b>AI</b></td><td>Spring AI 1.1 + Gemini 2.0 Flash</td><td>RAG 배선 코드 최소화. AI Studio 무료 티어로 비용 0</td></tr>
+      <tr><td><b>임베딩</b></td><td>text-embedding-004 (768d)</td><td>한국어 요약 임베딩 → 한-한 검색 직관적</td></tr>
+      <tr><td><b>캐시·실시간</b></td><td>Redis 7 · SSE</td><td>피드/카테고리 캐싱 + 단방향 알림엔 SSE가 적합(WebSocket 불필요)</td></tr>
+      <tr><td><b>보조</b></td><td>Flyway · springdoc · Actuator</td><td>스키마 버전관리 · API 문서 · 헬스/메트릭</td></tr>
+    </table>
+  </section>
+
+  <!-- 6 -->
+  <section class="slide" data-t="AI 파이프라인">
+    <div class="kicker">AI Pipeline</div>
+    <h2>기사당 <span class="ac">단 2번</span>의 LLM 호출</h2>
+    <div class="flow" style="margin:1rem 0 2rem">
+      <div class="node"><div class="t">영문 기사</div><div class="s">title_en · content_en</div></div>
+      <div class="arr">→</div>
+      <div class="node ai"><div class="t">① 구조화 출력 1콜</div><div class="s">번역+요약+태깅 합침</div></div>
+      <div class="arr">→</div>
+      <div class="node ai"><div class="t">② 임베딩 1콜</div><div class="s">summary_ko → vector(768)</div></div>
+      <div class="arr">→</div>
+      <div class="node hl"><div class="t">저장</div><div class="s">+ NewArticlesEvent</div></div>
+    </div>
+    <div class="cols c2">
+      <div class="card"><h3>✅ 핵심 설계</h3><p><b>전문 번역 안 함</b> — 영어를 한국어로 <i>요약</i>하면 그게 곧 번역+요약. 출력 토큰을 아끼고 원문은 그대로 보관 + 출처 링크.</p></div>
+      <div class="card"><h3>❌ 피한 안티패턴</h3><p>번역·요약·태깅·임베딩을 <b>4번 따로</b> 호출 / 전문을 통째로 번역. → 무료 쿼터를 빠르게 소진하는 길.</p></div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="slide" data-t="비용">
+    <div class="kicker">Cost & Reliability</div>
+    <h2>무료 티어 안에서 <span class="ac">안전하게</span></h2>
+    <div class="stat" style="margin-bottom:2rem">
+      <div><div class="v">~1,500</div><div class="k">Gemini Flash 일일 요청(RPD)</div></div>
+      <div><div class="v">2 콜</div><div class="k">기사당 (채팅+임베딩)</div></div>
+      <div><div class="v">~7%</div><div class="k">하루 100건 처리 시 쿼터 사용</div></div>
+      <div><div class="v">~700건</div><div class="k">하루 무료 처리 한계</div></div>
+    </div>
+    <div class="cols c2">
+      <div class="card"><h3>⚠️ 진짜 병목은 RPM</h3><p>토큰이 아니라 <b>분당 요청 수(5~15)</b>가 한계. 배치로 한 번에 쏟으면 막힌다.</p></div>
+      <div class="card"><h3>🛡️ 대응 — Throttle / Backoff</h3><p>신규 다건을 큐로 흘려보내며 속도 제한. <span class="muted">이 자체가 면접 어필 포인트.</span></p></div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="slide" data-t="RAG">
+    <div class="kicker">RAG Search</div>
+    <h2>자연어 질문 → <span class="ac">근거 있는 답변</span></h2>
+    <div class="steps" style="margin-bottom:1.2rem">
+      <div class="step"><div class="n"></div><div class="b"><b>질문 임베딩</b><span>"오픈소스 LLM 동향" → vector(768), task-type=RETRIEVAL_QUERY</span></div></div>
+      <div class="step"><div class="n"></div><div class="b"><b>pgvector 코사인 Top-K</b><span>HNSW 인덱스로 유사 기사 K건을 빠르게 조회</span></div></div>
+      <div class="step"><div class="n"></div><div class="b"><b>컨텍스트 주입 → 답변 생성</b><span>요약들을 묶어 Gemini가 한국어 답변 작성</span></div></div>
+      <div class="step"><div class="n"></div><div class="b"><b>출처와 함께 반환</b><span>{ answer, sources: ArticleSummary[] } — 환각 방지 + 신뢰</span></div></div>
+    </div>
+    <p class="note mono"><span class="muted">POST /api/search</span> &nbsp; { "query": "최근 LLM 추론 비용 얘기 정리해줘" }</p>
+  </section>
+
+  <!-- 9 -->
+  <section class="slide" data-t="실시간">
+    <div class="kicker">Realtime</div>
+    <h2>수집 즉시 <span class="ac">밀어주는</span> 알림</h2>
+    <div class="flow" style="margin:1rem 0 2rem;align-items:center">
+      <div class="node hl"><div class="t">배치 저장 완료</div><div class="s">새 기사 N건</div></div>
+      <div class="arr">→</div>
+      <div class="node ai"><div class="t">NewArticlesEvent</div><div class="s">ApplicationEventPublisher</div></div>
+      <div class="arr">→</div>
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="node"><div class="t">SSE 푸시</div><div class="s">구독자에게 new-articles</div></div>
+        <div class="node"><div class="t">Redis 캐시 무효화</div><div class="s">feed · categories</div></div>
+      </div>
+    </div>
+    <div class="cols c2">
+      <div class="card"><h3>왜 SSE인가</h3><p>새 기사 알림은 <b>서버→클라 단방향</b>. WebSocket의 양방향 오버헤드가 필요 없다.</p></div>
+      <div class="card"><h3>학습 포인트 (스트레치)</h3><p><span class="mono">EventSource</span>는 커스텀 헤더 불가 → JWT를 <b>쿼리파라미터/쿠키</b>로 넘겨 연결 시점에 검증. 일반 HTTP 인증과 다른 타이밍.</p></div>
+    </div>
+  </section>
+
+  <!-- 10 — ROADMAP (핵심) -->
+  <section class="slide" data-t="로드맵">
+    <div class="kicker">Roadmap · 진행 순서</div>
+    <h2>어떤 순서로 만드나 <span class="ac">— 6단계</span></h2>
+    <div class="road">
+      <div class="ph"><div class="p">PHASE 0</div><div class="d"><b>부트스트랩</b> <span>· 골격·인프라·스키마·공통코드 + 부팅/헬스 검증</span></div><div class="st done">✓ 완료</div></div>
+      <div class="ph active"><div class="p">PHASE 1</div><div class="d"><b>쓰기 라인 수직 슬라이스</b> <span>· Guardian→LLM(2콜)→pgvector 저장→이벤트</span></div><div class="st now">▶ 진행 예정</div></div>
+      <div class="ph"><div class="p">PHASE 2</div><div class="d"><b>읽기 라인</b> <span>· Feed/Article/Category API → RAG 검색 /api/search</span></div><div class="st next">다음</div></div>
+      <div class="ph"><div class="p">PHASE 3</div><div class="d"><b>실시간·캐시</b> <span>· SSE 구독 + Redis 캐싱/이벤트 무효화</span></div><div class="st later">예정</div></div>
+      <div class="ph"><div class="p">PHASE 4</div><div class="d"><b>마무리·배포</b> <span>· Swagger 정리 · Railway/Render 배포 · 데모 UI(타임박싱)</span></div><div class="st later">예정</div></div>
+      <div class="ph"><div class="p">PHASE 5</div><div class="d"><b>스트레치 → 시즌2</b> <span>· JWT 인증 / Redis Pub·Sub · AWS · k8s</span></div><div class="st later">확장</div></div>
+    </div>
+  </section>
+
+  <!-- 11 — 초반 집중 -->
+  <section class="slide" data-t="초반 집중">
+    <div class="kicker">Phase 1 · 지금 집중할 것</div>
+    <h2>가장 리스크 큰 <span class="ac">AI 코어를 먼저</span> 증명한다</h2>
+    <div class="steps">
+      <div class="step"><div class="n"></div><div class="b"><b>Article 도메인</b><span>엔티티·리포지토리 + vector(768) 컬럼 매핑 전략 결정</span></div></div>
+      <div class="step"><div class="n"></div><div class="b"><b>Guardian 클라이언트</b><span>기사 1건 fetch (section=technology, AI 키워드)</span></div></div>
+      <div class="step"><div class="n"></div><div class="b"><b>LLM 처리</b><span>ArticleEnrichment 구조화 출력 1콜 + 임베딩 1콜 (Spring AI)</span></div></div>
+      <div class="step"><div class="n"></div><div class="b"><b>저장 + dedup + 이벤트</b><span>(source,source_id) 유니크 upsert → NewArticlesEvent 발행</span></div></div>
+    </div>
+    <p class="note">전략: <b class="grad">1건을 end-to-end로</b> 흘려보내 "수집→AI→저장→(최소)검색"이 한 줄로 도는 걸 먼저 보인다 → 이후는 살만 붙이면 된다.</p>
+  </section>
+
+  <!-- 12 — 현재 진척 -->
+  <section class="slide" data-t="현재 진척">
+    <div class="kicker">Progress</div>
+    <h2>Phase 0 <span class="ac">검증 완료</span> — 동작하는 바닥</h2>
+    <div class="cols c2" style="flex:0">
+      <div class="card">
+        <h3>🧱 구축됨</h3>
+        <ul class="feat" style="gap:.6rem;margin-top:.6rem">
+          <li style="font-size:1.15rem">Spring Boot 3.5 / Java 21 골격</li>
+          <li style="font-size:1.15rem">compose: pgvector + Redis (healthcheck)</li>
+          <li style="font-size:1.15rem">Flyway V1: articles·article_tags·users</li>
+          <li style="font-size:1.15rem">Spring AI(google-genai) · 공통코드 · Swagger</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>✅ DoD 검증 결과</h3>
+        <ul class="feat" style="gap:.6rem;margin-top:.6rem">
+          <li style="font-size:1.15rem"><span class="ok">UP</span> &nbsp;/actuator/health (db·redis·ssl)</li>
+          <li style="font-size:1.15rem"><span class="ok">200</span> &nbsp;Swagger UI</li>
+          <li style="font-size:1.15rem"><span class="ok">3.7s</span> &nbsp;부팅 · Flyway V1 적용</li>
+          <li style="font-size:1.15rem"><span class="ok">0.8.3</span> &nbsp;pgvector vector(768) 동작</li>
+        </ul>
+      </div>
+    </div>
+    <p class="note">레포: <span class="mono muted">github.com/chanyoze/AI-Curation</span> · 초기 커밋 push 완료</p>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide" data-t="마무리">
+    <div style="margin:auto 0">
+      <div class="kicker">Wrap-up</div>
+      <h1>AI로 AI 뉴스를<br><span class="grad">큐레이션한다</span></h1>
+      <p class="lead" style="margin-top:1.6rem">수집은 자동 · 검색은 자연어 · 알림은 실시간.<br>무료 티어 위에서, 실서비스 패턴으로.</p>
+      <div class="stat" style="margin-top:2.4rem">
+        <div><div class="v">Phase 0 ✓</div><div class="k">바닥 검증 완료</div></div>
+        <div><div class="v">Phase 1 ▶</div><div class="k">AI 코어 수직 슬라이스</div></div>
+        <div><div class="v">→ 시즌2</div><div class="k">JWT · 인프라 확장</div></div>
+      </div>
+    </div>
+    <div class="brand" style="position:static;margin-top:2rem"><span class="dot"></span> NewsLens · AI Media Curation</div>
+  </section>
+
+</div>
+
+<div class="hud"><div class="bar" id="bar"></div></div>
+<div class="pg" id="pg"><b>01</b> / 13</div>
+<div class="brand"><span class="dot"></span> NewsLens</div>
+<div class="hint">← → 또는 스페이스로 이동 · F 전체화면</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0; const bar=document.getElementById('bar'), pg=document.getElementById('pg');
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    bar.style.width=((i+1)/slides.length*100)+'%';
+    pg.innerHTML='<b>'+String(i+1).padStart(2,'0')+'</b> / '+slides.length;
+  }
+  function next(){show(i+1)} function prev(){show(i-1)}
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown',' ','PageDown'].includes(e.key)){e.preventDefault();next()}
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();prev()}
+    else if(e.key==='Home'){show(0)} else if(e.key==='End'){show(slides.length-1)}
+    else if(e.key.toLowerCase()==='f'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
+  });
+  let sx=0; addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+  addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)dx<0?next():prev()},{passive:true});
+  document.getElementById('deck').addEventListener('click',e=>{ if(e.clientX>innerWidth*0.6)next(); else if(e.clientX<innerWidth*0.4)prev(); });
+  show(0);
+</script>
+</body>
+</html>
